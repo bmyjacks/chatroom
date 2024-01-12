@@ -6,11 +6,20 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * The Server class represents a server in a chatroom application.
+ * It listens for client connections and reads incoming messages from the client.
+ */
 public class Server {
     private final Socket socket;
     private final ServerSocket serverSocket;
     private final DataInputStream dataInputStream;
 
+    /**
+     * Constructs a new Server.
+     * @param port the port number on which the server will listen for connections
+     * @throws IOException if an I/O error occurs when opening the socket
+     */
     public Server(int port) throws IOException {
         serverSocket = new ServerSocket(port);
         System.out.println("Server started on port " + serverSocket.getLocalPort());
@@ -39,6 +48,11 @@ public class Server {
         }
     }
 
+    /**
+     * The main method that starts the server.
+     * @param args the command line arguments
+     * @throws IOException if an I/O error occurs when opening the socket
+     */
     public static void main(String[] args) throws IOException {
         Server server = new Server(6676);
     }
