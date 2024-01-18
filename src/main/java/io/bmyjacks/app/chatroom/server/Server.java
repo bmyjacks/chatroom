@@ -1,59 +1,98 @@
 package io.bmyjacks.app.chatroom.server;
 
-import java.io.BufferedInputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Vector;
 
-/**
- * The Server class represents a server in a chatroom application.
- * It listens for client connections and reads incoming messages from the client.
- */
 public class Server {
+    static Vector<ClientHandler> activeClient = new Vector<>();
+    static String history = "";
+    private final int port;
+
+    public Server(int port) {
+        this.port = port;
+    }
+
+    public void run() throws IOException {
+        ServerSocket serverSocket = new ServerSocket(port);
+        Socket socket;
+
+        while (true) {
+            socket = serverSocket.accept();
+            System.out.println("New client request received: " + socket);
+
+            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+            System.out.println("Creating a new handler for this client...");
+            ClientHandler clientHandler = new ClientHandler(socket, dataInputStream, dataOutputStream);
+
+            Thread handlerThread = new Thread(clientHandler);
+            System.out.println("Adding this client to active client list");
+            activeClient.add(clientHandler);
+            handlerThread.start();
+        }
+    }
+}
+
+class ClientHandler implements Runnable {
     private final Socket socket;
-    private final ServerSocket serverSocket;
     private final DataInputStream dataInputStream;
+    private final DataOutputStream dataOutputStream;
+    private String name;
 
-    /**
-     * Constructs a new Server.
-     * @param port the port number on which the server will listen for connections
-     * @throws IOException if an I/O error occurs when opening the socket
-     */
-    public Server(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
-        System.out.println("Server started on port " + serverSocket.getLocalPort());
-        System.out.println("Waiting for client to connect...");
+    public ClientHandler(Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream) {
+        this.name = "#" + socket.getPort();
+        this.socket = socket;
+        this.dataInputStream = dataInputStream;
+        this.dataOutputStream = dataOutputStream;
+    }
 
-        socket = serverSocket.accept();
-        System.out.println("Client connected: " + socket.getRemoteSocketAddress());
-        dataInputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+    @Override
+    public void run() {
+        String userInput = null;
+        String output = "Type your nickname: ";
+        try {
+            dataOutputStream.writeUTF(output);
+            dataOutputStream.flush();
+            name = dataInputStream.readUTF();
+        } catch (IOException e) {
+            System.out.println("Error IOException");
+        }
 
-        String line = "";
-        while (!line.equals("exit")) {
+        try {
+            dataOutputStream.writeUTF(Server.history);
+        } catch (IOException e) {
+            System.out.println("Error IOException");
+        }
+
+        while (true) {
             try {
-                line = dataInputStream.readUTF();
-                System.out.println(line);
+                userInput = dataInputStream.readUTF();
+                if (userInput.equals("exit")) {
+                    break;
+                }
+                System.out.println(name + ": " + userInput);
+                for (var clientHandler : Server.activeClient) {
+                    if (clientHandler != this) {
+                        clientHandler.dataOutputStream.writeUTF(name + ": " + userInput);
+                    }
+                }
+                Server.history += name + ": " + userInput + "\n";
             } catch (IOException e) {
-                System.out.println("Error: " + e.getMessage());
+                System.out.println("Error: IOException");
             }
         }
 
         try {
             dataInputStream.close();
+            dataOutputStream.close();
             socket.close();
-            serverSocket.close();
         } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error: IOException");
         }
-    }
-
-    /**
-     * The main method that starts the server.
-     * @param args the command line arguments
-     * @throws IOException if an I/O error occurs when opening the socket
-     */
-    public static void main(String[] args) throws IOException {
-        Server server = new Server(6676);
     }
 }
