@@ -54,10 +54,8 @@ class ClientHandler implements Runnable {
     @Override
     public void run() {
         String userInput = null;
-        String output = "Type your nickname: ";
+        String output = null;
         try {
-            dataOutputStream.writeUTF(output);
-            dataOutputStream.flush();
             name = dataInputStream.readUTF();
         } catch (IOException e) {
             System.out.println("Error IOException");
@@ -77,7 +75,9 @@ class ClientHandler implements Runnable {
                 }
                 System.out.println(name + ": " + userInput);
                 for (var clientHandler : Server.activeClient) {
-                    if (clientHandler != this) {
+                    if (clientHandler == this) {
+                        clientHandler.dataOutputStream.writeUTF(name + "(You): " + userInput);
+                    } else {
                         clientHandler.dataOutputStream.writeUTF(name + ": " + userInput);
                     }
                 }
@@ -88,9 +88,8 @@ class ClientHandler implements Runnable {
         }
 
         try {
-            dataInputStream.close();
-            dataOutputStream.close();
             socket.close();
+            Server.activeClient.remove(this);
         } catch (IOException e) {
             System.out.println("Error: IOException");
         }
