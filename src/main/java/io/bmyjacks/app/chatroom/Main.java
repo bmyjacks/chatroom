@@ -14,7 +14,7 @@ public class Main {
     static int port;
     @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Display this help")
     boolean help;
-    @CommandLine.Option(names = {"-V", "--version"}, versionHelp = true, description = "Print version information")
+    @CommandLine.Option(names = {"-v", "--version"}, versionHelp = true, description = "Print version information")
     boolean versionRequested;
 
     public static void main(String... args) throws IOException {
