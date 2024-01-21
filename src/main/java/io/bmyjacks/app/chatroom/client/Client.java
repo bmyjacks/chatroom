@@ -15,7 +15,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 
 public class Client {
@@ -28,7 +32,6 @@ public class Client {
     }
 
     public void run() throws IOException {
-        System.out.println("Welcome to the chatroom application!");
         Socket socket = new Socket(host, port);
 
         DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
@@ -42,10 +45,8 @@ public class Client {
             terminal = new DefaultTerminalFactory().setForceTextTerminal(false).createTerminal();
             screen = new TerminalScreen(terminal);
             screen.startScreen();
-            System.out.println("Screen started");
         } catch (ExceptionInInitializerError e) {
             System.out.println("EIIE");
-            e.printStackTrace();
         }
 
 
@@ -53,11 +54,22 @@ public class Client {
 
         String username = new TextInputDialogBuilder().setTitle("Welcome to chatroom!").setDescription("Please enter your username").build().showDialog(textGUI);
 
-        System.out.println(username);
+//        System.out.println(username);
         dataOutputStream.writeUTF(username);
 
         Panel mainPanel = new Panel();
         mainPanel.setLayoutManager(new BorderLayout());
+
+        Panel topPanel = new Panel();
+        topPanel.setLayoutManager(new BorderLayout());
+        Label usernameLabel = new Label(username);
+        Label clockLabel = new Label(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        topPanel.addComponent(usernameLabel.setLayoutData(BorderLayout.Location.LEFT));
+        topPanel.addComponent(clockLabel.setLayoutData(BorderLayout.Location.RIGHT));
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(() -> {
+            clockLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+        }, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
 
         Panel messagePanelWithBorder = new Panel();
         messagePanelWithBorder.setLayoutManager(new BorderLayout());
@@ -90,8 +102,11 @@ public class Client {
             } catch (IOException e) {
                 System.out.println("Error IOException");
             }
-            if (message.equalsIgnoreCase("exit")) {
+            if (message.equalsIgnoreCase("/exit")) {
                 try {
+                    executorService.shutdown();
+                    dataInputStream.close();
+                    dataOutputStream.close();
                     socket.close();
                     finalScreen.stopScreen();
                 } catch (IOException e) {
@@ -109,7 +124,7 @@ public class Client {
         sendMessagePanel.addComponent(sendBotton);
 
 
-        mainPanel.addComponent(new Label(username).setLayoutData(BorderLayout.Location.TOP));
+        mainPanel.addComponent(topPanel.setLayoutData(BorderLayout.Location.TOP));
         mainPanel.addComponent(messagePanelWithBorder.setLayoutData(BorderLayout.Location.CENTER));
         mainPanel.addComponent(sendMessagePanel.setLayoutData(BorderLayout.Location.BOTTOM));
 

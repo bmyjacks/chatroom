@@ -5,11 +5,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Vector;
 
 public class Server {
     static Vector<ClientHandler> activeClient = new Vector<>();
-    static String history = "";
+    static Vector<String> history = new Vector<>();
     private final int port;
 
     public Server(int port) {
@@ -18,20 +20,20 @@ public class Server {
 
     public void run() throws IOException {
         ServerSocket serverSocket = new ServerSocket(port);
-        Socket socket;
+        Socket clientSocket;
 
         while (true) {
-            socket = serverSocket.accept();
-            System.out.println("New client request received: " + socket);
+            clientSocket = serverSocket.accept();
+//            System.out.println("New client request received: " + socket);
 
-            DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+            DataInputStream dataInputStream = new DataInputStream(clientSocket.getInputStream());
+            DataOutputStream dataOutputStream = new DataOutputStream(clientSocket.getOutputStream());
 
-            System.out.println("Creating a new handler for this client...");
-            ClientHandler clientHandler = new ClientHandler(socket, dataInputStream, dataOutputStream);
+//            System.out.println("Creating a new handler for this client...");
+            ClientHandler clientHandler = new ClientHandler(clientSocket, dataInputStream, dataOutputStream);
 
             Thread handlerThread = new Thread(clientHandler);
-            System.out.println("Adding this client to active client list");
+//            System.out.println("Adding this client to active client list");
             activeClient.add(clientHandler);
             handlerThread.start();
         }
@@ -39,14 +41,14 @@ public class Server {
 }
 
 class ClientHandler implements Runnable {
-    private final Socket socket;
+    private final Socket clientSocket;
     private final DataInputStream dataInputStream;
     private final DataOutputStream dataOutputStream;
-    private String name;
+    private String username;
 
     public ClientHandler(Socket socket, DataInputStream dataInputStream, DataOutputStream dataOutputStream) {
-        this.name = "#" + socket.getPort();
-        this.socket = socket;
+        this.username = "#" + socket.getPort();
+        this.clientSocket = socket;
         this.dataInputStream = dataInputStream;
         this.dataOutputStream = dataOutputStream;
     }
@@ -54,41 +56,53 @@ class ClientHandler implements Runnable {
     @Override
     public void run() {
         String userInput = null;
-        String output = null;
+
         try {
-            name = dataInputStream.readUTF();
+            username = dataInputStream.readUTF();
         } catch (IOException e) {
             System.out.println("Error IOException");
         }
 
-        try {
-            dataOutputStream.writeUTF(Server.history);
-        } catch (IOException e) {
-            System.out.println("Error IOException");
+        if (!Server.history.isEmpty()) {
+            try {
+                for (var historyMessage : Server.history) {
+                    dataOutputStream.writeUTF(historyMessage);
+                }
+                dataOutputStream.writeUTF("-------- Above is history --------");
+            } catch (IOException e) {
+                System.out.println("Error IOException");
+            }
         }
+
 
         while (true) {
             try {
                 userInput = dataInputStream.readUTF();
-                if (userInput.equals("exit")) {
+                if (userInput.equals("/exit")) {
                     break;
                 }
-                System.out.println(name + ": " + userInput);
-                for (var clientHandler : Server.activeClient) {
-                    if (clientHandler == this) {
-                        clientHandler.dataOutputStream.writeUTF(name + "(You): " + userInput);
+                LocalTime time = LocalTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+                String message = "[" + time.format(formatter) + "] " + username + ": " + userInput;
+                System.out.println(message);
+                for (var client : Server.activeClient) {
+                    if (client == this) {
+                        client.dataOutputStream.writeUTF(message);
                     } else {
-                        clientHandler.dataOutputStream.writeUTF(name + ": " + userInput);
+                        client.dataOutputStream.writeUTF(message);
                     }
                 }
-                Server.history += name + ": " + userInput + "\n";
+                Server.history.add(message);
             } catch (IOException e) {
                 System.out.println("Error: IOException");
+                break;
             }
         }
 
         try {
-            socket.close();
+            dataInputStream.close();
+            dataOutputStream.close();
+            clientSocket.close();
             Server.activeClient.remove(this);
         } catch (IOException e) {
             System.out.println("Error: IOException");
