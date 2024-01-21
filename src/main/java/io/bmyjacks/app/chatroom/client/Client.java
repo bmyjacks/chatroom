@@ -133,7 +133,11 @@ public class Client {
             while (true) {
                 try {
                     String message = dataInputStream.readUTF();
-                    messagePanel.addComponent(new Label(message));
+                    if (message.equals("#CLR")) {
+                        messagePanel.removeAllComponents();
+                    } else {
+                        messagePanel.addComponent(new Label(message));
+                    }
                 } catch (IOException e) {
                     break;
                 }

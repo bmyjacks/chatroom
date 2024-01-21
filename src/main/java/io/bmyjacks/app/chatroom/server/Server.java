@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 public class Server {
@@ -53,6 +54,28 @@ class ClientHandler implements Runnable {
         this.dataOutputStream = dataOutputStream;
     }
 
+    public void sendToAll(String message) throws IOException {
+        for (var client : Server.activeClient) {
+            client.dataOutputStream.writeUTF(message);
+        }
+    }
+
+    public void unsentMessage(String username) throws IOException {
+        for (int i = Server.history.size() - 1; i >= 0; i--) {
+            StringTokenizer stringTokenizer = new StringTokenizer(Server.history.get(i));
+            stringTokenizer.nextToken();
+            String messageUsername = stringTokenizer.nextToken();
+            if (messageUsername.equals(username + ":")) {
+                Server.history.set(i, username + " unsent");
+                break;
+            }
+        }
+        sendToAll("#CLR");
+        for (var historyMessage : Server.history) {
+            sendToAll(historyMessage);
+        }
+    }
+
     @Override
     public void run() {
         String userInput = null;
@@ -80,6 +103,10 @@ class ClientHandler implements Runnable {
                 userInput = dataInputStream.readUTF();
                 if (userInput.equals("/exit")) {
                     break;
+                }
+                if (userInput.equals("/undo")) {
+                    unsentMessage(username);
+                    continue;
                 }
                 LocalTime time = LocalTime.now();
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
