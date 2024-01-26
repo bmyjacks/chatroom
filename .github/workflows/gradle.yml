@@ -36,11 +36,11 @@ jobs:
       - name: Execute Gradle build
         run: ./gradlew build
 
-      - name: Test with Gradle
+      - name: Test with Gradle and generate coverage report
         run: ./gradlew test
 
-      - name: Upload coverage to Codacy
-          uses: codacy/codacy-coverage-reporter-action@v1
-          with:
-            project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-            coverage-reports: reports/jacoco.xml
+      - name: Generate Jacoco report
+        uses: codacy/codacy-coverage-reporter-action@v1
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: reports/jacoco.xml
