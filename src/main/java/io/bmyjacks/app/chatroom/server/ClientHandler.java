@@ -23,13 +23,13 @@ class ClientHandler implements Runnable {
         this.isOnline = true;
     }
 
-    private void sendToAll(String message) throws IOException {
+    void sendToAll(String message) throws IOException {
         for (var client : Server.activeClient) {
             client.streamToClient.writeUTF(message);
         }
     }
 
-    private void unsentMessage(String username) throws IOException {
+    void unsentMessage(String username) throws IOException {
         for (int i = Server.history.size() - 1; i >= 0; i--) {
             StringTokenizer stringTokenizer = new StringTokenizer(Server.history.get(i));
             stringTokenizer.nextToken();
@@ -45,7 +45,7 @@ class ClientHandler implements Runnable {
         }
     }
 
-    private void getUsername() {
+    void getUsername() {
         String userInput = null;
         try {
             userInput = streamFromClient.readUTF();
@@ -59,18 +59,18 @@ class ClientHandler implements Runnable {
         username = userInput;
     }
 
-    private void sendHistory() {
+    void sendHistory() {
         try {
             for (var historyMessage : Server.history) {
                 streamToClient.writeUTF(historyMessage);
             }
-            streamToClient.writeUTF("-------- Above is history --------");
+
         } catch (IOException e) {
             System.out.println("Error: IOException");
         }
     }
 
-    private void close() {
+    void close() {
         try {
             streamFromClient.close();
             streamToClient.close();
@@ -81,13 +81,13 @@ class ClientHandler implements Runnable {
         }
     }
 
-    private String getFormattedCurrentTime() {
+    String getFormattedCurrentTime() {
         LocalTime time = LocalTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         return "[" + time.format(formatter) + "] ";
     }
 
-    private void processMessage(String input) throws IOException {
+    void processMessage(String input) throws IOException {
         if (input.equals("/exit")) {
             isOnline = false;
             return;
@@ -108,8 +108,12 @@ class ClientHandler implements Runnable {
 
         if (!Server.history.isEmpty()) {
             sendHistory();
+            try {
+                streamToClient.writeUTF("-------- Above is history --------");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
-
 
         while (isOnline) {
             try {
