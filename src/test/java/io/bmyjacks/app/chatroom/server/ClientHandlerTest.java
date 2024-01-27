@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 class ClientHandlerTest {
@@ -19,29 +20,42 @@ class ClientHandlerTest {
     private DataInputStream streamFromClient;
     @Mock
     private DataOutputStream streamToClient;
-
     private ClientHandler clientHandler;
 
     @BeforeEach
-    void setUp() throws IOException {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
         clientHandler = new ClientHandler(clientSocket, streamFromClient, streamToClient);
+        Server.activeClient.clear();
+        Server.history.clear();
     }
 
     @Test
-    void should_send_1_message_to_all_clients_when_sendToAll_method_called() throws IOException {
+    void set_username_with_normal_string() {
         // Given
-        Server.activeClient.add(clientHandler);
+        String username = "Test username";
 
         // When
-        clientHandler.sendToAll("Test message");
+        clientHandler.setUsername(username);
 
         // Then
-        verify(streamToClient).writeUTF(anyString());
+        assertEquals(username, clientHandler.getUsername());
     }
 
     @Test
-    void shouldSendHistoryWhenCallSendHistoryMethod() throws IOException {
+    void set_username_with_empty_string() {
+        // Given
+        String username = "";
+
+        // When
+        clientHandler.setUsername(username);
+
+        // Then
+        assertEquals(username, clientHandler.getUsername());
+    }
+
+    @Test
+    void send_history_when_history_is_not_empty() throws IOException {
         // Given
         Server.history.add("Test history message1");
         Server.history.add("Test history message2");
@@ -54,7 +68,7 @@ class ClientHandlerTest {
     }
 
     @Test
-    void shouldNotSendHistoryWhenHistoryIsEmpty() throws IOException {
+    void not_send_history_when_history_is_empty() throws IOException {
         // Given
         Server.history.clear();
 
@@ -63,5 +77,34 @@ class ClientHandlerTest {
 
         // Then
         verify(streamToClient, never()).writeUTF(anyString());
+    }
+
+
+    @Test
+    void sendToAll() throws IOException {
+        // Given
+        ClientHandler clientHandler1 = mock(ClientHandler.class);
+        ClientHandler clientHandler2 = mock(ClientHandler.class);
+        ClientHandler clientHandler3 = mock(ClientHandler.class);
+
+        DataOutputStream streamToClient1 = mock(DataOutputStream.class);
+        DataOutputStream streamToClient2 = mock(DataOutputStream.class);
+        DataOutputStream streamToClient3 = mock(DataOutputStream.class);
+
+        when(clientHandler1.getStreamToClient()).thenReturn(streamToClient1);
+        when(clientHandler2.getStreamToClient()).thenReturn(streamToClient2);
+        when(clientHandler3.getStreamToClient()).thenReturn(streamToClient3);
+
+        Server.activeClient.add(clientHandler1);
+        Server.activeClient.add(clientHandler2);
+        Server.activeClient.add(clientHandler3);
+
+        // When
+        clientHandler.sendToAll("Test message");
+
+        // Then
+        verify(streamToClient1, times(1)).writeUTF(anyString());
+        verify(streamToClient2, times(1)).writeUTF(anyString());
+        verify(streamToClient3, times(1)).writeUTF(anyString());
     }
 }

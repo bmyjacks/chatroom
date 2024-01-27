@@ -15,27 +15,59 @@ class ClientHandler implements Runnable {
     private String username;
     private boolean isOnline;
 
-    protected ClientHandler(Socket socket, DataInputStream streamFromClient, DataOutputStream streamToClient) {
-        this.username = "#" + socket.getPort();
+    ClientHandler(Socket socket, DataInputStream streamFromClient, DataOutputStream streamToClient) {
+        setUsername("#" + socket.getPort());
         this.clientSocket = socket;
         this.streamFromClient = streamFromClient;
         this.streamToClient = streamToClient;
         this.isOnline = true;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+
+    public Socket getClientSocket() {
+        return clientSocket;
+    }
+
+
+    public DataOutputStream getStreamToClient() {
+        return streamToClient;
+    }
+
+
+    public DataInputStream getStreamFromClient() {
+        return streamFromClient;
+    }
+
+
+    public boolean isOnline() {
+        return isOnline;
+    }
+
+    public void setOnline(boolean online) {
+        isOnline = online;
+    }
+
     void sendToAll(String message) throws IOException {
         for (var client : Server.activeClient) {
-            client.streamToClient.writeUTF(message);
+            client.getStreamToClient().writeUTF(message);
         }
     }
 
-    void unsentMessage(String username) throws IOException {
+    void unsentMessage() throws IOException {
         for (int i = Server.history.size() - 1; i >= 0; i--) {
             StringTokenizer stringTokenizer = new StringTokenizer(Server.history.get(i));
             stringTokenizer.nextToken();
             String messageUsername = stringTokenizer.nextToken();
-            if (messageUsername.equals(username + ":")) {
-                Server.history.set(i, username + " unsent");
+            if (messageUsername.equals(getUsername() + ":")) {
+                Server.history.set(i, getUsername() + " unsent");
                 break;
             }
         }
@@ -45,10 +77,10 @@ class ClientHandler implements Runnable {
         }
     }
 
-    void getUsername() {
-        String userInput = null;
+    void getUsernameInput() {
+        String userInput = "";
         try {
-            userInput = streamFromClient.readUTF();
+            userInput = getStreamFromClient().readUTF();
         } catch (IOException e) {
             System.out.println("Error: IOException");
         }
@@ -56,13 +88,13 @@ class ClientHandler implements Runnable {
         if (userInput.equals("/exit")) {
             System.exit(0);
         }
-        username = userInput;
+        setUsername(userInput);
     }
 
     void sendHistory() {
         try {
             for (var historyMessage : Server.history) {
-                streamToClient.writeUTF(historyMessage);
+                getStreamToClient().writeUTF(historyMessage);
             }
 
         } catch (IOException e) {
@@ -72,9 +104,9 @@ class ClientHandler implements Runnable {
 
     void close() {
         try {
-            streamFromClient.close();
-            streamToClient.close();
-            clientSocket.close();
+            getStreamFromClient().close();
+            getStreamToClient().close();
+            getClientSocket().close();
             Server.activeClient.remove(this);
         } catch (IOException e) {
             System.out.println("Error: IOException");
@@ -89,22 +121,22 @@ class ClientHandler implements Runnable {
 
     void processMessage(String input) throws IOException {
         if (input.equals("/exit")) {
-            isOnline = false;
+            setOnline(false);
             return;
         }
         if (input.equals("/undo")) {
-            unsentMessage(username);
+            unsentMessage();
             return;
         }
 
-        String message = getFormattedCurrentTime() + username + ": " + input;
+        String message = getFormattedCurrentTime() + getUsername() + ": " + input;
         sendToAll(message);
         Server.history.add(message);
     }
 
     @Override
     public void run() {
-        getUsername();
+        getUsernameInput();
 
         if (!Server.history.isEmpty()) {
             sendHistory();
@@ -115,9 +147,9 @@ class ClientHandler implements Runnable {
             }
         }
 
-        while (isOnline) {
+        while (isOnline()) {
             try {
-                String userInput = streamFromClient.readUTF();
+                String userInput = getStreamFromClient().readUTF();
                 processMessage(userInput);
             } catch (IOException e) {
                 System.out.println("Error: IOException");
@@ -126,4 +158,5 @@ class ClientHandler implements Runnable {
 
         close();
     }
+
 }
