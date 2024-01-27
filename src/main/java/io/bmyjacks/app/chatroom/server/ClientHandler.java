@@ -28,6 +28,9 @@ class ClientHandler implements Runnable {
     }
 
     public void setUsername(String username) {
+        if (username.equals("/exit")) {
+            System.exit(0);
+        }
         this.username = username;
     }
 
@@ -83,10 +86,6 @@ class ClientHandler implements Runnable {
             userInput = getStreamFromClient().readUTF();
         } catch (IOException e) {
             System.out.println("Error: IOException");
-        }
-
-        if (userInput.equals("/exit")) {
-            System.exit(0);
         }
         setUsername(userInput);
     }
