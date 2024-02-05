@@ -6,7 +6,7 @@ import picocli.CommandLine;
 
 import java.io.IOException;
 
-@CommandLine.Command(description = "A simple chatroom application", mixinStandardHelpOptions = true, version = "1.0")
+@CommandLine.Command(name = "chatroom-1.0-all.jar", description = "A simple chatroom application", mixinStandardHelpOptions = true, version = {"Chatroom 1.0", "Picocli " + picocli.CommandLine.VERSION, "JVM: ${java.version} (${java.vendor} ${java.vm.name} ${java.vm.version})", "OS: ${os.name} ${os.version} ${os.arch}"})
 public class Main {
     @CommandLine.Option(names = {"-s", "--server"}, description = "Run as server")
     static boolean isServer;
