@@ -101,4 +101,8 @@ public class Message {
             return "[" + formatter.format(getSentTime()) + "] " + getUsername() + ": " + getMessage();
         }
     }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
 }
