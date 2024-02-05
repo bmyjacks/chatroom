@@ -24,13 +24,27 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-
+/**
+ * This class represents the client in the chatroom application.
+ * It handles communication with the server and provides a user interface for sending and receiving messages.
+ */
 public class Client {
+    // The host address of the server
     private final InetAddress host;
+    // The port number of the server
     private final int port;
+    // A history of messages received from the server
     private final Vector<Message> historyMessage = new Vector<>();
+    // A list of labels for displaying the message history in the user interface
     private final Vector<Label> historyLabel = new Vector<>();
 
+    /**
+     * Constructs a new Client with the specified port.
+     * The client will connect to the server at the local host address.
+     *
+     * @param port the port number of the server
+     * @throws UnknownHostException if the local host name could not be resolved into an address
+     */
     public Client(int port) throws UnknownHostException {
         this.host = InetAddress.getLocalHost();
         this.port = port;
@@ -38,11 +52,21 @@ public class Client {
         historyLabel.clear();
     }
 
+    /**
+     * Starts the client.
+     * It connects to the server, starts the user interface, and begins receiving and sending messages.
+     *
+     * @throws IOException if there is an error connecting to the server or communicating with it
+     */
     public void run() throws IOException {
+        // Connect to the server
         Socket socket = new Socket(host, port);
 
+        // Create input and output streams for communication with the server
         DataInputStream streamFromServer = new DataInputStream(socket.getInputStream());
         DataOutputStream streamToServer = new DataOutputStream(socket.getOutputStream());
+
+        // Create the terminal and screen for the user interface
         Terminal terminal;
         Screen screen = null;
 
@@ -56,15 +80,19 @@ public class Client {
             System.out.println("EIIE");
         }
 
-
+        // Create the text GUI for the user interface
         final WindowBasedTextGUI textGUI = new MultiWindowTextGUI(screen);
 
+        // Get the username from the user
         String username = new TextInputDialogBuilder().setTitle("Welcome to chatroom!").setDescription("Please enter your username").build().showDialog(textGUI);
+        // Send the username to the server
         streamToServer.writeUTF(username);
 
+        // Create the main panel for the user interface
         Panel mainPanel = new Panel();
         mainPanel.setLayoutManager(new BorderLayout());
 
+        // Create the top panel for displaying the username and clock
         Panel topPanel = new Panel();
         topPanel.setLayoutManager(new BorderLayout());
         Label usernameLabel = new Label(username);
@@ -72,7 +100,7 @@ public class Client {
         topPanel.addComponent(usernameLabel.setLayoutData(BorderLayout.Location.LEFT));
         topPanel.addComponent(clockLabel.setLayoutData(BorderLayout.Location.RIGHT));
 
-
+        // Create the message panel for displaying the message history
         Panel messagePanelWithBorder = new Panel();
         messagePanelWithBorder.setLayoutManager(new BorderLayout());
 
@@ -85,6 +113,7 @@ public class Client {
         messagePanelWithBorder.addComponent(new EmptySpace(TextColor.ANSI.CYAN, new TerminalSize(1, 0)), BorderLayout.Location.LEFT);
         messagePanelWithBorder.addComponent(new EmptySpace(TextColor.ANSI.CYAN, new TerminalSize(1, 0)), BorderLayout.Location.RIGHT);
 
+        // Create the send message panel for inputting and sending messages
         Panel sendMessagePanel = new Panel(new GridLayout(2));
         TextBox inputBox = new TextBox();
         inputBox.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.FILL, // Horizontal alignment in the grid cell and fill empty space
@@ -95,10 +124,11 @@ public class Client {
                 1)); // Vertical span
         sendMessagePanel.addComponent(inputBox);
 
-
+        // Create a scheduled executor service for updating the clock label every second
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(() -> clockLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))), 0, 1, java.util.concurrent.TimeUnit.SECONDS);
 
+        // Create a send button for sending messages
         Screen finalScreen = screen;
         Button sendBotton = new Button("Send", () -> {
             String message = inputBox.getText();
@@ -129,11 +159,12 @@ public class Client {
                 1)); // Vertical span
         sendMessagePanel.addComponent(sendBotton);
 
-
+        // Add the top panel, message panel, and send message panel to the main panel
         mainPanel.addComponent(topPanel.setLayoutData(BorderLayout.Location.TOP));
         mainPanel.addComponent(messagePanelWithBorder.setLayoutData(BorderLayout.Location.CENTER));
         mainPanel.addComponent(sendMessagePanel.setLayoutData(BorderLayout.Location.BOTTOM));
 
+        // Create a scheduled executor service for receiving messages from the server every 500 milliseconds
         executorService.scheduleAtFixedRate(() -> {
             try {
                 while (streamFromServer.available() > 0) {
@@ -158,9 +189,12 @@ public class Client {
             }
         }, 0, 500, TimeUnit.MILLISECONDS);
 
+        // Create a window for the user interface and add the main panel to it
         BasicWindow window = new BasicWindow();
         window.setComponent(mainPanel);
         window.setHints(List.of(Window.Hint.FULL_SCREEN));
+
+        // Create a GUI for the user interface and add the window to it
         MultiWindowTextGUI gui = new MultiWindowTextGUI(screen, new DefaultWindowManager(), new EmptySpace(TextColor.ANSI.BLUE));
         gui.addWindowAndWait(window);
         gui.updateScreen();
