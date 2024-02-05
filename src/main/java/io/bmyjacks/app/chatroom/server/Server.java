@@ -8,8 +8,8 @@ import java.net.Socket;
 import java.util.Vector;
 
 public class Server {
-    static Vector<ClientHandler> activeClient = new Vector<>();
-    static Vector<String> history = new Vector<>();
+    static public Vector<ClientHandler> activeClient = new Vector<>();
+    static public Vector<Message> history = new Vector<>();
     private final int port;
 
     public Server(int port) {

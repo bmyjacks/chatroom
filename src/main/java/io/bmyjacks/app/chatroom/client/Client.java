@@ -8,6 +8,7 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
+import io.bmyjacks.app.chatroom.server.Message;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -18,25 +19,31 @@ import java.net.UnknownHostException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class Client {
-    private final int port;
     private final InetAddress host;
+    private final int port;
+    private final Vector<Message> historyMessage = new Vector<>();
+    private final Vector<Label> historyLabel = new Vector<>();
 
     public Client(int port) throws UnknownHostException {
         this.host = InetAddress.getLocalHost();
         this.port = port;
+        historyMessage.clear();
+        historyLabel.clear();
     }
 
     public void run() throws IOException {
         Socket socket = new Socket(host, port);
 
-        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-        DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-        Terminal terminal = null;
+        DataInputStream streamFromServer = new DataInputStream(socket.getInputStream());
+        DataOutputStream streamToServer = new DataOutputStream(socket.getOutputStream());
+        Terminal terminal;
         Screen screen = null;
 
         System.out.println("Starting screen");
@@ -53,9 +60,7 @@ public class Client {
         final WindowBasedTextGUI textGUI = new MultiWindowTextGUI(screen);
 
         String username = new TextInputDialogBuilder().setTitle("Welcome to chatroom!").setDescription("Please enter your username").build().showDialog(textGUI);
-
-//        System.out.println(username);
-        dataOutputStream.writeUTF(username);
+        streamToServer.writeUTF(username);
 
         Panel mainPanel = new Panel();
         mainPanel.setLayoutManager(new BorderLayout());
@@ -66,10 +71,7 @@ public class Client {
         Label clockLabel = new Label(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         topPanel.addComponent(usernameLabel.setLayoutData(BorderLayout.Location.LEFT));
         topPanel.addComponent(clockLabel.setLayoutData(BorderLayout.Location.RIGHT));
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(() -> {
-            clockLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-        }, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
+
 
         Panel messagePanelWithBorder = new Panel();
         messagePanelWithBorder.setLayoutManager(new BorderLayout());
@@ -93,20 +95,24 @@ public class Client {
                 1)); // Vertical span
         sendMessagePanel.addComponent(inputBox);
 
+
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(() -> clockLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))), 0, 1, java.util.concurrent.TimeUnit.SECONDS);
+
         Screen finalScreen = screen;
         Button sendBotton = new Button("Send", () -> {
             String message = inputBox.getText();
             inputBox.setText("");
             try {
-                dataOutputStream.writeUTF(message);
+                streamToServer.writeUTF(message);
             } catch (IOException e) {
                 System.out.println("Error IOException");
             }
             if (message.equalsIgnoreCase("/exit")) {
                 try {
                     executorService.shutdown();
-                    dataInputStream.close();
-                    dataOutputStream.close();
+                    streamFromServer.close();
+                    streamToServer.close();
                     socket.close();
                     finalScreen.stopScreen();
                 } catch (IOException e) {
@@ -128,23 +134,29 @@ public class Client {
         mainPanel.addComponent(messagePanelWithBorder.setLayoutData(BorderLayout.Location.CENTER));
         mainPanel.addComponent(sendMessagePanel.setLayoutData(BorderLayout.Location.BOTTOM));
 
+        executorService.scheduleAtFixedRate(() -> {
+            try {
+                while (streamFromServer.available() > 0) {
+                    Message message = new Message(streamFromServer.readUTF());
 
-        Thread readMessage = new Thread(() -> {
-            while (true) {
-                try {
-                    String message = dataInputStream.readUTF();
-                    if (message.equals("#CLR")) {
-                        messagePanel.removeAllComponents();
+                    if (message.getMessage().equals("/undo")) {
+                        for (int i = historyMessage.size() - 1; i >= 0; i--) {
+                            if (historyMessage.get(i).getUsername().equals(message.getUsername())) {
+                                historyMessage.get(i).unsent();
+                                historyLabel.get(i).setText(historyMessage.get(i).output());
+                                break;
+                            }
+                        }
                     } else {
-                        messagePanel.addComponent(new Label(message));
+                        historyMessage.add(message);
+                        historyLabel.add(new Label(message.output()));
+                        messagePanel.addComponent(historyLabel.lastElement());
                     }
-                } catch (IOException e) {
-                    break;
                 }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        });
-
-        readMessage.start();
+        }, 0, 500, TimeUnit.MILLISECONDS);
 
         BasicWindow window = new BasicWindow();
         window.setComponent(mainPanel);
