@@ -21,6 +21,12 @@ public record Server(int port) {
     private static final Vector<Message> history = new Vector<>();
     private static ServerSocket serverSocket;
 
+    public Server(int port) {
+        this.port = port;
+        activeClient.clear();
+        history.clear();
+    }
+
     public static ServerSocket getServerSocket() {
         return serverSocket;
     }

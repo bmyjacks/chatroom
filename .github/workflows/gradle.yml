@@ -26,11 +26,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
-      - name: Execute Gradle build
+      - name: Execute Gradle build and test
         run: ./gradlew build
-
-      - name: Test with Jacoco and generate coverage report
-        run: ./gradlew test
 
       - name: Upload coverage report
         uses: codacy/codacy-coverage-reporter-action@v1
