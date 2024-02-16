@@ -5,6 +5,7 @@ import io.bmyjacks.app.chatroom.server.Server;
 import picocli.CommandLine;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 /**
  * This is the main class for the chatroom application.
@@ -62,7 +63,8 @@ public class Main {
             case "client":
                 // Running as a client
                 System.out.println("Running as a client on port " + port + "...");
-                Client client = new Client(port);
+                Client client = new Client(InetAddress.getLocalHost(), port);
+                client.init();
                 client.run();
                 break;
             default:
