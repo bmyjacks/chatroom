@@ -11,7 +11,7 @@ public class ServerTest {
 
         Server server = new Server(port);
 
-        assertEquals(port, server.port());
+        assertEquals(port, server.getPort());
     }
 
     @Test

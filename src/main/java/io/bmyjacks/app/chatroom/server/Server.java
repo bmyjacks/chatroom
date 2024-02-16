@@ -13,6 +13,11 @@ public class Server {
     // A history of messages
     private static final Vector<Message> history = new Vector<>();
     private static ServerSocket serverSocket;
+
+    public int getPort() {
+        return port;
+    }
+
     private final int port;
 
     public Server(int port) {
