@@ -9,7 +9,7 @@ import java.net.Socket;
  * This class represents a client handler in the chatroom server.
  * It handles communication with a single client.
  */
-class ClientHandler implements Runnable {
+public class ClientHandler implements Runnable {
     // The client's socket
     private final Socket clientSocket;
     // The input stream from the client
@@ -109,7 +109,7 @@ class ClientHandler implements Runnable {
      * @throws IOException if there is an error writing to the output stream
      */
     void sendToAll(Message message) throws IOException {
-        for (var client : Server.activeClient) {
+        for (var client : Server.getActiveClient()) {
             client.getStreamToClient().writeUTF(message.toString());
         }
     }
@@ -132,7 +132,7 @@ class ClientHandler implements Runnable {
      */
     void sendHistory() {
         try {
-            for (var historyMessage : Server.history) {
+            for (var historyMessage : Server.getHistory()) {
                 getStreamToClient().writeUTF(historyMessage.toString());
             }
 
@@ -149,7 +149,7 @@ class ClientHandler implements Runnable {
             getStreamFromClient().close();
             getStreamToClient().close();
             getClientSocket().close();
-            Server.activeClient.remove(this);
+            Server.getActiveClient().remove(this);
         } catch (IOException e) {
             System.out.println("Error: IOException");
         }
@@ -170,7 +170,7 @@ class ClientHandler implements Runnable {
             return;
         }
         sendToAll(message);
-        Server.history.add(message);
+        Server.getHistory().add(message);
     }
 
     /**
@@ -181,7 +181,7 @@ class ClientHandler implements Runnable {
     public void run() {
         getUsernameInput();
 
-        if (!Server.history.isEmpty()) {
+        if (!Server.getHistory().isEmpty()) {
             sendHistory();
         }
 
