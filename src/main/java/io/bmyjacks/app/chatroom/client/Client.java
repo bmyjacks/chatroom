@@ -15,7 +15,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -37,19 +36,75 @@ public class Client {
     private final Vector<Message> historyMessage = new Vector<>();
     // A list of labels for displaying the message history in the user interface
     private final Vector<Label> historyLabel = new Vector<>();
+    // gui
+    private final Terminal terminal = new DefaultTerminalFactory().setForceTextTerminal(false).createTerminal();
+    private final Screen screen = new TerminalScreen(terminal);
+    private final WindowBasedTextGUI textGUI = new MultiWindowTextGUI(screen);
+    private Socket socket;
+    private DataInputStream streamFromServer;
+    private DataOutputStream streamToServer;
+    private String username;
 
     /**
      * Constructs a new Client with the specified port.
      * The client will connect to the server at the local host address.
      *
      * @param port the port number of the server
-     * @throws UnknownHostException if the local host name could not be resolved into an address
      */
-    public Client(int port) throws UnknownHostException {
-        this.host = InetAddress.getLocalHost();
+    public Client(InetAddress host, int port) throws IOException {
+        this.host = host;
         this.port = port;
-        historyMessage.clear();
-        historyLabel.clear();
+    }
+
+    public InetAddress getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public Vector<Message> getHistoryMessage() {
+        return historyMessage;
+    }
+
+    public Vector<Label> getHistoryLabel() {
+        return historyLabel;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    ;
+
+    public DataInputStream getStreamFromServer() {
+        return streamFromServer;
+    }
+
+    public DataOutputStream getStreamToServer() {
+        return streamToServer;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void init() throws IOException {
+        socket = new Socket(getHost(), getPort());
+        streamFromServer = new DataInputStream(getSocket().getInputStream());
+        streamToServer = new DataOutputStream(getSocket().getOutputStream());
+    }
+
+    public void initTerminal() throws IOException {
+        screen.startScreen();
+    }
+
+    private void setUserNameViaGui() throws IOException {
+        // Get the username from the user
+        username = new TextInputDialogBuilder().setTitle("Welcome to chatroom!").setDescription("Please enter your username").build().showDialog(textGUI);
+        // Send the username to the server
+        getStreamToServer().writeUTF(getUsername());
     }
 
     /**
@@ -59,34 +114,9 @@ public class Client {
      * @throws IOException if there is an error connecting to the server or communicating with it
      */
     public void run() throws IOException {
-        // Connect to the server
-        Socket socket = new Socket(host, port);
+        initTerminal();
+        setUserNameViaGui();
 
-        // Create input and output streams for communication with the server
-        DataInputStream streamFromServer = new DataInputStream(socket.getInputStream());
-        DataOutputStream streamToServer = new DataOutputStream(socket.getOutputStream());
-
-        // Create the terminal and screen for the user interface
-        Terminal terminal;
-        Screen screen = null;
-
-        System.out.println("Starting screen");
-
-        try {
-            terminal = new DefaultTerminalFactory().setForceTextTerminal(false).createTerminal();
-            screen = new TerminalScreen(terminal);
-            screen.startScreen();
-        } catch (ExceptionInInitializerError e) {
-            System.out.println("EIIE");
-        }
-
-        // Create the text GUI for the user interface
-        final WindowBasedTextGUI textGUI = new MultiWindowTextGUI(screen);
-
-        // Get the username from the user
-        String username = new TextInputDialogBuilder().setTitle("Welcome to chatroom!").setDescription("Please enter your username").build().showDialog(textGUI);
-        // Send the username to the server
-        streamToServer.writeUTF(username);
 
         // Create the main panel for the user interface
         Panel mainPanel = new Panel();
@@ -113,7 +143,7 @@ public class Client {
         messagePanelWithBorder.addComponent(new EmptySpace(TextColor.ANSI.CYAN, new TerminalSize(1, 0)), BorderLayout.Location.LEFT);
         messagePanelWithBorder.addComponent(new EmptySpace(TextColor.ANSI.CYAN, new TerminalSize(1, 0)), BorderLayout.Location.RIGHT);
 
-        // Create the send message panel for inputting and sending messages
+        // Create a panel for inputting and sending messages
         Panel sendMessagePanel = new Panel(new GridLayout(2));
         TextBox inputBox = new TextBox();
         inputBox.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.FILL, // Horizontal alignment in the grid cell and fill empty space
@@ -128,7 +158,7 @@ public class Client {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(() -> clockLabel.setText(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))), 0, 1, java.util.concurrent.TimeUnit.SECONDS);
 
-        // Create a send button for sending messages
+        // Create a "send button" for sending messages
         Screen finalScreen = screen;
         Button sendBotton = new Button("Send", () -> {
             String message = inputBox.getText();
