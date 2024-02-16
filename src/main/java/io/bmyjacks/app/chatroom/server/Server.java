@@ -7,19 +7,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Vector;
 
-/**
- * This class represents the server in the chatroom application.
- * It maintains a list of active clients and a history of messages.
- * It listens for incoming client connections and starts a new ClientHandler for each one.
- *
- * @param port The port the server is running on
- */
-public record Server(int port) {
+public class Server {
     // A list of active clients
     private static final Vector<ClientHandler> activeClient = new Vector<>();
     // A history of messages
     private static final Vector<Message> history = new Vector<>();
     private static ServerSocket serverSocket;
+    private final int port;
 
     public Server(int port) {
         this.port = port;
