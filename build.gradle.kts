@@ -1,7 +1,6 @@
 plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("java")
-    id("jacoco")
 }
 
 group = "io.bmyjacks.app.chatroom"
@@ -26,10 +25,6 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.withType<Test> {
-    finalizedBy("jacocoTestReport")
-}
-
 tasks.withType<Javadoc> {
     setDestinationDir(file("doc"))
 }
@@ -49,11 +44,4 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
         attributes["Main-Class"] = "io.bmyjacks.app.chatroom.Main"
     }
     minimize()
-}
-
-tasks.getByName<JacocoReport>("jacocoTestReport") {
-    reports {
-        xml.required.set(true)
-        xml.outputLocation.set(file("reports/jacoco.xml"))
-    }
 }
