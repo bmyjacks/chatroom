@@ -132,7 +132,7 @@ public class Client {
     Panel messagePanelWithBorder = new Panel().setLayoutManager(new BorderLayout());
 
     Panel messagePanel = new Panel().setLayoutManager(new GridLayout(1));
-    executorService.scheduleAtFixedRate(() -> {
+    getExecutorService().scheduleAtFixedRate(() -> {
       try {
         while (getStreamFromServer().available() > 0) {
           Message message = new Message(getStreamFromServer().readUTF());
@@ -186,7 +186,7 @@ public class Client {
       String message = inputBox.getText();
       inputBox.setText("");
       try {
-        streamToServer.writeUTF(message);
+        getStreamToServer().writeUTF(message);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
