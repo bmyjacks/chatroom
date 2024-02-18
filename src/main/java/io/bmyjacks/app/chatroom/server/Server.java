@@ -7,30 +7,35 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
 
   // A list of active clients
-  private static Vector<ClientHandler> activeClient;
+  private static final Vector<ClientHandler> activeClient = new Vector<>();
   // A history of messages
-  private static Vector<Message> history;
-  private static ServerSocket serverSocket;
+  private static final Vector<Message> history = new Vector<>();
+  private static final ExecutorService executorService = Executors.newCachedThreadPool();
+  private static final ServerSocket serverSocket;
+
+  static {
+    try {
+      serverSocket = new ServerSocket();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private final int port;
 
   public Server(int port) throws IOException {
     this.port = port;
-    activeClient = new Vector<>();
-    history = new Vector<>();
-    serverSocket = new ServerSocket();
     serverSocket.bind(new InetSocketAddress("0.0.0.0", port));
   }
 
   public static ServerSocket getServerSocket() {
     return serverSocket;
-  }
-
-  public static void setServerSocket(ServerSocket serverSocket) {
-    Server.serverSocket = serverSocket;
   }
 
   public static Vector<ClientHandler> getActiveClient() {
@@ -68,8 +73,7 @@ public class Server {
       getActiveClient().add(clientHandler);
 
       // Start the ClientHandler in a new thread
-      Thread handlerThread = new Thread(clientHandler);
-      handlerThread.start();
+      executorService.execute(clientHandler);
     }
   }
 }
