@@ -32,15 +32,10 @@ tasks.getByName<JavaCompile>("compileJava") {
     options.compilerArgs.plusAssign(listOf("-Aproject=${project.group}/${project.name}"))
 }
 
-tasks.getByName<Jar>("jar") {
-    manifest {
-        attributes["Main-Class"] = "io.bmyjacks.app.chatroom.Main"
-    }
-}
-
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    configurations = listOf(project.configurations.compileClasspath.get())
     manifest {
         attributes["Main-Class"] = "io.bmyjacks.app.chatroom.Main"
     }
-    minimize()
+    isEnableRelocation = true
 }
