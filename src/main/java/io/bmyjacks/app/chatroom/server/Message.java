@@ -2,7 +2,6 @@ package io.bmyjacks.app.chatroom.server;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -13,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Message {
 
   // A map to keep track of the number of messages each user has sent
-  private static final Map<String, Integer> userMessageCount = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String, Integer> userMessageCount = new ConcurrentHashMap<>();
   // The time the message was sent
   private final LocalTime time;
   // The username of the sender
@@ -51,9 +50,13 @@ public class Message {
     incrementMessageCount();
   }
 
+  /**
+   * Increments the message count for the user who sent the message. This method is called every
+   * time a new message is created.
+   */
   private void incrementMessageCount() {
     if (!getMessage().equals("/undo")) {
-      userMessageCount.put(username, userMessageCount.getOrDefault(username, 0) + 1);
+      userMessageCount.put(getUsername(), userMessageCount.getOrDefault(getUsername(), 0) + 1);
     }
   }
 
@@ -93,12 +96,17 @@ public class Message {
     return deleted;
   }
 
+  /**
+   * Sets the deleted status of the message.
+   *
+   * @param deleted the new deleted status
+   */
   public void setDeleted(boolean deleted) {
     this.deleted = deleted;
   }
 
   /**
-   * Marks the message as unsent.
+   * Toggles the deleted status of the message.
    */
   public void unsent() {
     setDeleted(!isDeleted());
@@ -113,6 +121,11 @@ public class Message {
     return getSentTime() + "#" + getUsername() + "#" + getMessage() + "#" + isDeleted();
   }
 
+  /**
+   * Returns a formatted string of the time and username. The format is "[time] username".
+   *
+   * @return a formatted string of the time and username
+   */
   private String getFormattedTimeAndUsername() {
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
     return "[" + formatter.format(getSentTime()) + "] " + getUsername();
@@ -129,7 +142,7 @@ public class Message {
     if (getUsername().equals("Server")) {
       return getFormattedTimeAndUsername() + ": " + getMessage();
     }
-    if (deleted) {
+    if (isDeleted()) {
       return getFormattedTimeAndUsername() + "[" + Message.userMessageCount.get(getUsername())
           + "]: " + "This message has been deleted.";
     } else {

@@ -24,19 +24,12 @@ public class Server {
   // A thread pool for handling multiple client connections concurrently
   private static final ExecutorService executorService = Executors.newCachedThreadPool();
   // The server socket for accepting client connections
-  private static final ServerSocket serverSocket;
-
-  static {
-    try {
-      serverSocket = new ServerSocket();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  private static ServerSocket serverSocket;
 
   // The port number on which the server is running
   private final int port;
-  private volatile boolean running = true;
+  // Whether the server is running
+  private final boolean running = true;
 
   /**
    * Constructs a new Server.
@@ -45,8 +38,14 @@ public class Server {
    * @throws IOException if there is an error in binding the server socket to the specified port
    */
   public Server(int port) throws IOException {
+    try {
+      serverSocket = new ServerSocket();
+    } catch (IOException e) {
+      System.err.println("Error creating server socket: " + e.getMessage());
+    }
+
     this.port = port;
-    serverSocket.bind(new InetSocketAddress("0.0.0.0", port));
+    getServerSocket().bind(new InetSocketAddress("0.0.0.0", getPort()));
   }
 
   /**
@@ -94,6 +93,12 @@ public class Server {
     return this.port;
   }
 
+
+  /**
+   * Checks if the server is running.
+   *
+   * @return true if the server is running, false otherwise
+   */
   public boolean isRunning() {
     return running;
   }
