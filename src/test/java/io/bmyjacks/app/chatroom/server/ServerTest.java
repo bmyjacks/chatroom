@@ -1,31 +1,34 @@
 package io.bmyjacks.app.chatroom.server;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class ServerTest {
-    @Test
-    void constructorShouldSetPortNumber() throws IOException {
-        int port = 1234;
 
-        Server server = new Server(port);
+  @Test
+  void constructorShouldSetPortNumber() throws IOException {
+    int port = 1234;
 
-        assertEquals(port, server.getPort());
-    }
+    Server server = new Server(port);
 
-    @Test
-    void constructorShouldClearActiveClientsAndHistory() throws IOException {
-        Server.getActiveClient().add(new ClientHandler(null, null, null));
-        Server.getHistory().add(new Message("username", "message"));
+    assertEquals(port, server.getPort());
+  }
 
-        assertFalse(Server.getActiveClient().isEmpty());
-        assertFalse(Server.getHistory().isEmpty());
+  @Test
+  void constructorShouldClearActiveClientsAndHistory() throws IOException {
+    Server.getActiveClient().add(new ClientHandler(null, null, null));
+    Server.getHistory().add(new Message("username", "message"));
 
-        new Server(1234);
+    assertFalse(Server.getActiveClient().isEmpty());
+    assertFalse(Server.getHistory().isEmpty());
 
-        assertTrue(Server.getActiveClient().isEmpty());
-        assertTrue(Server.getHistory().isEmpty());
-    }
+    new Server(4372);
+
+    assertTrue(Server.getActiveClient().isEmpty());
+    assertTrue(Server.getHistory().isEmpty());
+  }
 }

@@ -38,6 +38,9 @@ public class Server {
    * @throws IOException if there is an error in binding the server socket to the specified port
    */
   public Server(int port) throws IOException {
+    activeClient.clear();
+    history.clear();
+
     try {
       serverSocket = new ServerSocket();
     } catch (IOException e) {

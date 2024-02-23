@@ -51,6 +51,13 @@ public class Message {
   }
 
   /**
+   * Resets the message count for all users.
+   */
+  public static void resetMessageCount() {
+    userMessageCount.clear();
+  }
+
+  /**
    * Increments the message count for the user who sent the message. This method is called every
    * time a new message is created.
    */
